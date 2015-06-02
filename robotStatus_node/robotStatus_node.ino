@@ -116,11 +116,15 @@ void loop(void) {
       if (pingRet >= 15 && lastPingRet >= 15){
         robInfo.isParked = 0;
         robInfo.mowTime = robInfo.mowTime + 1;
-        robInfo.parkedTime = 0;
+        //delay the reset so that the Server can catch the total mow time
+        if (robInfo.mowTime >= 5)
+          robInfo.parkedTime = 0;
       }
       else if (pingRet < 15 && lastPingRet < 15){
         robInfo.isParked = 1;
         robInfo.parkedTime = robInfo.parkedTime + 1;
+        //delay the reset
+        if (robInfo.parkedTime >= 5)
         robInfo.mowTime = 0;
       }
       

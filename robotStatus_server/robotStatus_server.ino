@@ -38,11 +38,13 @@ int dispHours;
 int dispMin;
 int dispSec;
 String subState;
+String subBrack = "(";
 String subOne = "h";
 String subTwo = "m";
 String subThree = "s)";
 String lineTwo;
-
+int mowCycles = 0;
+int caseNr;
 
 /** VARIABLES FOR SERVER SIDE STRING BUILDING **/
 typedef struct{
@@ -62,10 +64,16 @@ void setup(void){
   lcd.setBacklightPin(BACKLIGHT_PIN,POSITIVE); // Switch on the backlight
   lcd.setBacklight(HIGH);
   lcd.clear();
-  //Serial.begin(9600);
+  lcd.setCursor(0,0);
+  lcd.print("MARK-BOERJE");
+  lcd.setCursor(0,1);
+  lcd.print("STATUS V1.0");
+  lcd.print("               ");
   radio.begin();
   radio.openReadingPipe(1,pipe);
   radio.startListening();
+  delay(3000);
+  
 }
 void loop(void){
 
@@ -76,63 +84,91 @@ void loop(void){
       done = radio.read( &robInfo, sizeof(robInfo) );
     }
     
-    Serial.println("Package contents: ");
-    Serial.print("\t Static message = ");
-    Serial.println(robInfo.staticMessage);
-    Serial.print("\t isParked = ");
-    Serial.println(robInfo.isParked);
-    Serial.print("\t parkedTime = ");
-    Serial.println(robInfo.parkedTime);
-    Serial.print("\t mowTime = ");
-    Serial.println(robInfo.mowTime);
+//    Serial.println("Package contents: ");
+//    Serial.print("\t Static message = ");
+//    Serial.println(robInfo.staticMessage);
+//    Serial.print("\t isParked = ");
+//    Serial.println(robInfo.isParked);
+//    Serial.print("\t parkedTime = ");
+//    Serial.println(robInfo.parkedTime);
+//    Serial.print("\t mowTime = ");
+//    Serial.println(robInfo.mowTime);
   
     if (robInfo.isParked == 1 && last_isParked == 1){
-      subState = "Parked (";
+      subState = "Parked";
       dispHours = robInfo.parkedTime / 3600;
       dispMin = (robInfo.parkedTime - dispHours * 60) / 60;
       dispSec = robInfo.parkedTime - dispMin * 60;
   
       if (robInfo.parkedTime < 60){
-        lineTwo = subState + dispSec + subThree;        
+        lineTwo = subBrack + dispSec + subThree;        
       }
       else if (robInfo.parkedTime >=60 && robInfo.parkedTime < 3600){
-        lineTwo = subState + dispMin + subTwo + dispSec + subThree;   
+        lineTwo = subBrack + dispMin + subTwo + dispSec + subThree;   
       }
       else {
-        lineTwo = subState + dispHours + subOne + dispMin + subTwo + dispSec + subThree;        
+        lineTwo = subBrack + dispHours + subOne + dispMin + subTwo + dispSec + subThree;        
       }
     }
     else if (robInfo.isParked == 0 && last_isParked == 0){
-      subState = "Mowing (";
+      subState = "#Mowing#";
       dispHours = robInfo.mowTime / 3600;
       dispMin = (robInfo.mowTime - dispHours * 60) / 60;
       dispSec = robInfo.mowTime - dispMin * 60;
   
       if (robInfo.mowTime < 60){
-        lineTwo = subState + dispSec + subThree;        
+        lineTwo = subBrack + dispSec + subThree;        
       }
       else if (robInfo.mowTime >=60 && robInfo.mowTime < 3600){
-        lineTwo = subState + dispMin + subTwo + dispSec + subThree;   
+        lineTwo = subBrack + dispMin + subTwo + dispSec + subThree;   
       }
       else {
-        lineTwo = subState + dispHours + subOne + dispMin + subTwo + dispSec + subThree;        
+        lineTwo = subBrack + dispHours + subOne + dispMin + subTwo + dispSec + subThree;        
       }
     }
+    else if (robInfo.isParked == 0 && last_isParked == 1){
+      Serial.print("Parked time: ");Serial.print(robInfo.parkedTime);
+    }
+    else if (robInfo.isParked == 1 && last_isParked == 0){
+      Serial.print("Mowing cycletime ");Serial.print(robInfo.mowTime);
+      mowCycles = mowCycles + 1;
+    }
+      
 //    else if (robInfo.isParked == 1 && last_isParked == 0){
 //      subState = "Just Parked";
 //      lineTwo = subState + robInfo.parkedTime + subThree;
 //      }
-    
-
-    
-    
-//    lineTwo = "BLARGH!";  
-    lcd.setCursor(0,0);
-      lcd.print(robInfo.staticMessage);
-      lcd.print("               ");
+  
     lcd.setCursor(0,1);
-      lcd.print(lineTwo);
+      lcd.print("Cycles: ");
+      lcd.print(mowCycles);
       lcd.print("               ");
+    lcd.setCursor(0,0);
+
+      
+      switch (caseNr) {
+        case 0:
+          lcd.print("Status: ");
+          lcd.print(subState);
+          lcd.print("     ");
+          caseNr = 1;
+          break;
+        case 1:
+          lcd.print("Status: ");
+          lcd.print(lineTwo);
+          lcd.print("     ");          
+//          if (robInfo.isParked == 1)
+//            lcd.print(li);
+//          else
+//            lcd.print(robInfo.mowTime);
+          caseNr = 0;
+          break;
+      }
+
+      
+      //lcd.print(lineTwo);
+      lcd.print("               ");
+      
       
 //      if (robInfo.isParked == 1){
 //        lcd.print(lineTwo);
