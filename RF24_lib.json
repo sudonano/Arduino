@@ -1,0 +1,12 @@
+{
+    "name": "RF24",
+    "keywords": "RF24, nRF24L01, radio",
+    "description": "Send and receive with nRF24L01 2.4GHz radio modules",
+    "repository":
+    {
+        "type": "git",
+        "url": "https://github.com/maniacbug/RF24.git"
+    },
+    "frameworks": "arduino",
+    "platforms": "atmelavr"
+}
