@@ -34,15 +34,19 @@ int msg[1];
 RF24 radio(9,10);
 const uint64_t pipe = 0xE8E8F0F0E1LL;
 int last_isParked = 0;
-int dispHours;
-int dispMin;
-int dispSec;
+unsigned long dispCount;
+unsigned long dispDays;
+unsigned long dispHours;
+unsigned long dispMin;
+unsigned long dispSec;
 String subState;
-String subBrack = "(";
+String subBrack = "";
+String subD = "d";
 String subOne = "h";
 String subTwo = "m";
-String subThree = "s)";
-String lineTwo;
+String subThree = "s       ";
+String subBlank = "        ";
+String lineOne;
 int mowCycles = 0;
 int caseNr;
 
@@ -67,16 +71,19 @@ void setup(void){
   lcd.setCursor(0,0);
   lcd.print("MARK-BOERJE");
   lcd.setCursor(0,1);
-  lcd.print("STATUS V1.0");
+  lcd.print("STATUS V1.1");
   lcd.print("               ");
   radio.begin();
+  radio.setDataRate(RF24_250KBPS);
+  radio.setPayloadSize(sizeof(robInfo));
   radio.openReadingPipe(1,pipe);
   radio.startListening();
   delay(3000);
   
 }
 void loop(void){
-
+   
+  String lineTwo;
   if (radio.available()){
     bool done = false;
     while (!done)
@@ -95,83 +102,89 @@ void loop(void){
 //    Serial.println(robInfo.mowTime);
   
     if (robInfo.isParked == 1 && last_isParked == 1){
-      subState = "Parked";
-      dispHours = robInfo.parkedTime / 3600;
-      dispMin = (robInfo.parkedTime - dispHours * 60) / 60;
-      dispSec = robInfo.parkedTime - dispMin * 60;
-  
+      subState = "PARKED ";
+      dispCount = robInfo.parkedTime;
+      dispDays = dispCount / 86400;
+      int x = dispDays * 24;
+      dispHours = (dispCount / 3600) - x; //(dispDays * 24);
+      dispMin = (dispCount/60) - (dispDays * 24 * 60) - (dispHours * 60);
+      dispSec = dispCount - (dispDays * 24 * 3600) - (dispHours * 3600) - (dispMin * 60);
+ 
+      Serial.print("dispCount: ");Serial.println(dispCount);
+      Serial.print("Days: ");Serial.println(dispDays);
+      Serial.print("Hours: ");Serial.println(dispHours);
+      Serial.print("Minutes: ");Serial.println(dispMin);
+      Serial.print("Seconds: ");Serial.println(dispSec);      
       if (robInfo.parkedTime < 60){
-        lineTwo = subBrack + dispSec + subThree;        
+        lineOne = subState + subBrack + dispSec + subThree + subBlank;        
       }
       else if (robInfo.parkedTime >=60 && robInfo.parkedTime < 3600){
-        lineTwo = subBrack + dispMin + subTwo + dispSec + subThree;   
+        lineOne = subState + subBrack + dispMin + subTwo + dispSec + subThree + subBlank;   
+      }
+      else if (robInfo.parkedTime >=3600 && robInfo.parkedTime < 86400){
+        lineOne = subState + subBrack + dispHours + subOne + dispMin + subTwo + dispSec + subThree + subBlank;        
       }
       else {
-        lineTwo = subBrack + dispHours + subOne + dispMin + subTwo + dispSec + subThree;        
+        lineOne = subState + subBrack + dispDays + subD + dispHours + subOne + dispMin + subTwo + subBlank;
       }
     }
     else if (robInfo.isParked == 0 && last_isParked == 0){
-      subState = "#Mowing#";
-      dispHours = robInfo.mowTime / 3600;
-      dispMin = (robInfo.mowTime - dispHours * 60) / 60;
-      dispSec = robInfo.mowTime - dispMin * 60;
+      subState = "MOWING ";
+      dispCount = robInfo.mowTime;
+      dispDays = dispCount / 86400;
+      int x = dispDays * 24;
+      dispHours = (dispCount / 3600) - x; //(dispDays * 24);
+      dispMin = (dispCount/60) - (dispDays * 24 * 60) - (dispHours * 60);
+      dispSec = dispCount - (dispDays * 24 * 3600) - (dispHours * 3600) - (dispMin * 60);     
   
       if (robInfo.mowTime < 60){
-        lineTwo = subBrack + dispSec + subThree;        
+        lineOne = subState + subBrack + dispSec + subThree + subBlank;        
       }
       else if (robInfo.mowTime >=60 && robInfo.mowTime < 3600){
-        lineTwo = subBrack + dispMin + subTwo + dispSec + subThree;   
+        lineOne = subState + subBrack + dispMin + subTwo + dispSec + subThree + subBlank;   
+      }
+      else if (robInfo.mowTime >=3600 && robInfo.mowTime < 86400){
+        lineOne = subState + subBrack + dispHours + subOne + dispMin + subTwo + dispSec + subThree + subBlank;        
       }
       else {
-        lineTwo = subBrack + dispHours + subOne + dispMin + subTwo + dispSec + subThree;        
+        lineOne = subState + subBrack + dispDays + subD + dispHours + subOne + dispMin + subTwo + subBlank;
       }
     }
     else if (robInfo.isParked == 0 && last_isParked == 1){
-      Serial.print("Parked time: ");Serial.print(robInfo.parkedTime);
+      //Serial.print("Parked time: ");Serial.print(robInfo.parkedTime);
     }
     else if (robInfo.isParked == 1 && last_isParked == 0){
-      Serial.print("Mowing cycletime ");Serial.print(robInfo.mowTime);
+      //Serial.print("Mowing cycletime ");Serial.print(robInfo.mowTime);
       mowCycles = mowCycles + 1;
     }
+    //Serial.println("Time variables -");
+    //Serial.print("robInfo.parkedTime: ");Serial.println(robInfo.parkedTime);
+    //Serial.print("dispCount (int): ");Serial.println(dispCount);
+    //Serial.print("dispHours: ");Serial.println(dispHours);
+    //Serial.print("dispMin: ");Serial.println(dispMin);
+    //Serial.print("dispSec: ");Serial.println(dispSec);
       
 //    else if (robInfo.isParked == 1 && last_isParked == 0){
 //      subState = "Just Parked";
-//      lineTwo = subState + robInfo.parkedTime + subThree;
+//      lineOne = subState + robInfo.parkedTime + subThree;
 //      }
   
-    lcd.setCursor(0,1);
-      lcd.print("Cycles: ");
-      lcd.print(mowCycles);
-      lcd.print("               ");
     lcd.setCursor(0,0);
+      lcd.print(lineOne);
+    lcd.setCursor(0,1);
+        lcd.print(lineTwo);
+//      lcd.print("Cycles: ");
+//      lcd.print(mowCycles);
+//      lcd.print("    ");
+    
+    Serial.println(robInfo.isParked);
+    }
 
-      
-      switch (caseNr) {
-        case 0:
-          lcd.print("Status: ");
-          lcd.print(subState);
-          lcd.print("     ");
-          caseNr = 1;
-          break;
-        case 1:
-          lcd.print("Status: ");
-          lcd.print(lineTwo);
-          lcd.print("     ");          
-//          if (robInfo.isParked == 1)
-//            lcd.print(li);
-//          else
-//            lcd.print(robInfo.mowTime);
-          caseNr = 0;
-          break;
-      }
 
-      
-      //lcd.print(lineTwo);
-      lcd.print("               ");
-      
+   
       
 //      if (robInfo.isParked == 1){
-//        lcd.print(lineTwo);
+//        lcd.print(lineOne);
 //        lcd.print("    ");
 //      }
 //      else {
@@ -180,12 +193,9 @@ void loop(void){
 //        lcd.print("    ");
 //      }
           
-
-  }
-  
   last_isParked = robInfo.isParked;
-  
-}
+} 
+
 
 
 //        lcd.setCursor(blankCursor,1);

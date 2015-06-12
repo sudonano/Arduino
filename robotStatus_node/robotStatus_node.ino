@@ -44,7 +44,7 @@ typedef struct{
   char staticMessage[16] = "M-B STATUS V1.0";
   bool isParked = 0;
   unsigned long mowTime = 0;
-  unsigned long parkedTime = 0;
+  unsigned long parkedTime = 86390;
 }robInfo_t;
 
 robInfo_t robInfo;
@@ -58,8 +58,16 @@ void setup(void)
   // Setup and configure rf radio
   radio.begin();
   radio.setRetries(15, 15);
-
-
+//  rf24_pa_dbm_e radioPA = radio.getPALevel();
+//  Serial.print("PA level: ");Serial.println(radioPA);
+//  radio.setPALevel(RF24_PA_MAX);
+//  radioPA = radio.getPALevel();
+//  Serial.print("PA level: ");Serial.println(radioPA);
+  radio.setDataRate(RF24_250KBPS);
+  Serial.println("Set datarate to 250KBPS");
+  
+  
+  
   // Open pipes to other nodes for communication
   if ( role == role_ping_out )
   {
@@ -86,7 +94,8 @@ void setup(void)
 
 void loop(void) {
 
-  pingTime = millis();
+//  if (pingTime == 0)
+    pingTime = millis();
 
   if (((pingTime - lastPing) > 1000) && role == role_ping_out ){
     String robotStatus;
@@ -98,11 +107,11 @@ void loop(void) {
       
       if (buttonState == 1 && lastButtonState == 1){
         robInfo.isParked = 1;
-        robInfo.parkedTime = robInfo.parkedTime + 1;
+        robInfo.parkedTime = robInfo.parkedTime + ((millis() - pingTime)/1000);
       }
       else if (buttonState == 0 && lastButtonState == 0){
         robInfo.isParked = 0;
-        robInfo.mowTime = robInfo.mowTime + 1 ;
+        robInfo.mowTime = robInfo.mowTime + ((millis() - pingTime)/1000) ;
       }
       
       lastButtonState = buttonState;
@@ -115,6 +124,7 @@ void loop(void) {
       
       if (pingRet >= 15 && lastPingRet >= 15){
         robInfo.isParked = 0;
+//        robInfo.mowTime = robInfo.mowTime + ((millis() - pingTime)/1000);
         robInfo.mowTime = robInfo.mowTime + 1;
         //delay the reset so that the Server can catch the total mow time
         if (robInfo.mowTime >= 5)
@@ -123,6 +133,7 @@ void loop(void) {
       else if (pingRet < 15 && lastPingRet < 15){
         robInfo.isParked = 1;
         robInfo.parkedTime = robInfo.parkedTime + 1;
+//        robInfo.parkedTime = robInfo.parkedTime + ((millis() - pingTime)/1000);
         //delay the reset
         if (robInfo.parkedTime >= 5)
         robInfo.mowTime = 0;
@@ -156,6 +167,8 @@ void loop(void) {
 
   
   radio.stopListening();
+  radio.setPayloadSize(sizeof(robInfo));
+  Serial.print(sizeof(robInfo));
   bool ok = radio.write( &robInfo, sizeof(robInfo) );
   //radio.startListening();
 
@@ -176,9 +189,10 @@ void loop(void) {
   else
   {
     ledState = LOW;
-    digitalWrite(ledPin, ledState);
   }
-    lastPing = pingTime;
+  
+  digitalWrite(ledPin, ledState);
+  lastPing = pingTime;
   
 
   //  else if (role == pong_back_role)
